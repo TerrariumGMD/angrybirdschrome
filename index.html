@@ -1,29 +1,58 @@
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-  background: black;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Angry Birds Fullscreen</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background: black;
+    }
 
-*, *::before, *::after {
-  box-sizing: border-box;
-}
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
 
-#content, #gameDiv, #playn-root {
-  height: 100vh;
-  width: 100vw;
-  margin: 0;
-  padding: 0;
-  display: block;
-}
+    #content, #gameDiv, #playn-root {
+      height: 100vh;
+      width: 100vw;
+      margin: 0;
+      padding: 0;
+      display: block;
+    }
 
-#gameDiv {
-  display: block;
-}
+    /* Hide UI elements */
+    .buttons,
+    #rovionews,
+    #videochapter,
+    #ingameframecontainer,
+    #cornerframecontainer1 {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="content">
+    <div id="gameDiv">
+      <div id="playn-root">
+        <div id="loading">
+          <img src="images/loading_image_bird.png" alt="Loading..." />
+        </div>
+      </div>
+      <!-- Hidden containers -->
+      <div id="rovionews"></div>
+      <div id="videochapter"></div>
+      <div id="ingameframecontainer"></div>
+      <div id="cornerframecontainer1"></div>
+    </div>
+  </div>
 
-/* Hide UI buttons and extra containers */
-.buttons, #rovionews, #videochapter, #ingameframecontainer, #cornerframecontainer1 {
-  display: none !important;
-}
+  <!-- Main game script -->
+  <script src="fowl/fowl.nocache.js"></script>
+</body>
+</html>
