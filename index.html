@@ -8,23 +8,16 @@
     html, body {
       margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: black;
     }
-    *, *::before, *::after {
-      box-sizing: border-box;
-    }
-    #content, #gameDiv, #playn-root {
-      position: relative;
-      height: 100vh;
-      width: 100vw;
-      margin: 0; padding: 0;
-      display: block;
-    }
     canvas {
-      display: block;
       position: absolute;
       top: 0; left: 0;
-      margin: 0; padding: 0;
+      width: 573px;
+      height: 765px;
+      transform-origin: top left;
+      transform: scale(calc(100vw / 573), calc(100vh / 765));
+      image-rendering: pixelated;
     }
-    /* Hide unwanted UI elements */
+    /* Hide UI buttons */
     .buttons, #rovionews, #videochapter, #ingameframecontainer, #cornerframecontainer1 {
       display: none !important;
     }
@@ -46,56 +39,5 @@
   </div>
 
   <script src="fowl/fowl.nocache.js"></script>
-
-  <script>
-    function forceCanvasSize(canvas) {
-      if (!canvas) return;
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width;
-        canvas.height = height;
-        canvas.style.width = width + 'px';
-        canvas.style.height = height + 'px';
-      }
-    }
-
-    function observeCanvas() {
-      const canvas = document.querySelector('canvas');
-      if (!canvas) return;
-
-      forceCanvasSize(canvas);
-
-      // Create observer to watch for attribute changes on canvas
-      const observer = new MutationObserver(mutations => {
-        mutations.forEach(mutation => {
-          if (mutation.type === 'attributes' && (mutation.attributeName === 'width' || mutation.attributeName === 'height')) {
-            // Canvas size changed, force it back
-            forceCanvasSize(canvas);
-          }
-        });
-      });
-
-      observer.observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
-
-      // Also resize on window resize
-      window.addEventListener('resize', () => forceCanvasSize(canvas));
-    }
-
-    // Start observer once window loads
-    window.addEventListener('load', () => {
-      // Sometimes canvas is created later, poll until found
-      let attempts = 0;
-      const interval = setInterval(() => {
-        const canvas = document.querySelector('canvas');
-        if (canvas) {
-          clearInterval(interval);
-          observeCanvas();
-        } else if (attempts++ > 30) {
-          clearInterval(interval); // give up after ~9 seconds
-        }
-      }, 300);
-    });
-  </script>
 </body>
 </html>
