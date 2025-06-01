@@ -11,15 +11,8 @@
     canvas {
       position: absolute;
       top: 0; left: 0;
-      width: 573px;
-      height: 765px;
-      transform-origin: top left;
-      transform: scale(calc(100vw / 573), calc(100vh / 765));
-      image-rendering: pixelated;
-    }
-    /* Hide UI buttons */
-    .buttons, #rovionews, #videochapter, #ingameframecontainer, #cornerframecontainer1 {
-      display: none !important;
+      image-rendering: pixelated; /* optional */
+      /* We'll set width/height and transform via JS */
     }
   </style>
 </head>
@@ -39,5 +32,67 @@
   </div>
 
   <script src="fowl/fowl.nocache.js"></script>
+  <script>
+    function scaleCanvasToFullscreen() {
+      const canvas = document.querySelector('canvas');
+      if (!canvas) return;
+
+      // Get the internal canvas size (attributes)
+      const nativeWidth = canvas.width;
+      const nativeHeight = canvas.height;
+
+      if (nativeWidth === 0 || nativeHeight === 0) {
+        // Canvas not ready yet, try again later
+        return false;
+      }
+
+      // Calculate scale factors to fill the viewport while preserving aspect ratio
+      const scaleX = window.innerWidth / nativeWidth;
+      const scaleY = window.innerHeight / nativeHeight;
+      const scale = Math.min(scaleX, scaleY); // choose smaller to avoid cropping
+
+      // Apply CSS width/height equal to native size, then scale up with transform
+      canvas.style.width = nativeWidth + 'px';
+      canvas.style.height = nativeHeight + 'px';
+      canvas.style.transformOrigin = 'top left';
+      canvas.style.transform = `scale(${scale})`;
+
+      // Optional: center the canvas if letterboxed
+      const offsetX = (window.innerWidth - nativeWidth * scale) / 2;
+      const offsetY = (window.innerHeight - nativeHeight * scale) / 2;
+      canvas.style.left = offsetX + 'px';
+      canvas.style.top = offsetY + 'px';
+
+      return true;
+    }
+
+    function waitForCanvasAndScale() {
+      const canvas = document.querySelector('canvas');
+      if (!canvas) {
+        // Try again soon
+        setTimeout(waitForCanvasAndScale, 100);
+        return;
+      }
+
+      // Initially scale
+      if (!scaleCanvasToFullscreen()) {
+        // Canvas might not be ready, try again shortly
+        setTimeout(waitForCanvasAndScale, 100);
+        return;
+      }
+
+      // Watch for canvas size changes with MutationObserver
+      const observer = new MutationObserver(() => {
+        scaleCanvasToFullscreen();
+      });
+
+      observer.observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
+
+      // Also scale on window resize
+      window.addEventListener('resize', scaleCanvasToFullscreen);
+    }
+
+    window.addEventListener('load', waitForCanvasAndScale);
+  </script>
 </body>
 </html>
