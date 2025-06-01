@@ -48,37 +48,54 @@
   <script src="fowl/fowl.nocache.js"></script>
 
   <script>
-    function forceResizeCanvas() {
-      const canvas = document.querySelector('canvas');
+    function forceCanvasSize(canvas) {
       if (!canvas) return;
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      canvas.style.width = window.innerWidth + 'px';
-      canvas.style.height = window.innerHeight + 'px';
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+      }
     }
 
-    function waitAndResize() {
-      const maxAttempts = 20;
-      let attempts = 0;
+    function observeCanvas() {
+      const canvas = document.querySelector('canvas');
+      if (!canvas) return;
 
+      forceCanvasSize(canvas);
+
+      // Create observer to watch for attribute changes on canvas
+      const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+          if (mutation.type === 'attributes' && (mutation.attributeName === 'width' || mutation.attributeName === 'height')) {
+            // Canvas size changed, force it back
+            forceCanvasSize(canvas);
+          }
+        });
+      });
+
+      observer.observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
+
+      // Also resize on window resize
+      window.addEventListener('resize', () => forceCanvasSize(canvas));
+    }
+
+    // Start observer once window loads
+    window.addEventListener('load', () => {
+      // Sometimes canvas is created later, poll until found
+      let attempts = 0;
       const interval = setInterval(() => {
         const canvas = document.querySelector('canvas');
         if (canvas) {
-          forceResizeCanvas();
-          attempts++;
-
-          const cw = parseInt(canvas.getAttribute('width'), 10);
-          const ch = parseInt(canvas.getAttribute('height'), 10);
-
-          if ((cw === window.innerWidth && ch === window.innerHeight) || attempts >= maxAttempts) {
-            clearInterval(interval);
-          }
+          clearInterval(interval);
+          observeCanvas();
+        } else if (attempts++ > 30) {
+          clearInterval(interval); // give up after ~9 seconds
         }
       }, 300);
-    }
-
-    window.addEventListener('load', waitAndResize);
-    window.addEventListener('resize', forceResizeCanvas);
+    });
   </script>
 </body>
 </html>
