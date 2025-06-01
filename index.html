@@ -6,43 +6,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-      background: black;
+      margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: black;
     }
-
     *, *::before, *::after {
       box-sizing: border-box;
     }
-
     #content, #gameDiv, #playn-root {
       position: relative;
       height: 100vh;
       width: 100vw;
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       display: block;
     }
-
     canvas {
       display: block;
       position: absolute;
-      top: 0;
-      left: 0;
-      margin: 0;
-      padding: 0;
-      /* Don't stretch canvas with CSS */
+      top: 0; left: 0;
+      margin: 0; padding: 0;
     }
-
-    /* Hide extra UI containers */
-    .buttons,
-    #rovionews,
-    #videochapter,
-    #ingameframecontainer,
-    #cornerframecontainer1 {
+    /* Hide unwanted UI elements */
+    .buttons, #rovionews, #videochapter, #ingameframecontainer, #cornerframecontainer1 {
       display: none !important;
     }
   </style>
@@ -55,8 +38,6 @@
           <img src="images/loading_image_bird.png" alt="Loading..." />
         </div>
       </div>
-
-      <!-- Hidden containers -->
       <div id="rovionews"></div>
       <div id="videochapter"></div>
       <div id="ingameframecontainer"></div>
@@ -64,31 +45,40 @@
     </div>
   </div>
 
-  <!-- Main game engine -->
   <script src="fowl/fowl.nocache.js"></script>
 
-  <!-- Proper canvas resizing -->
   <script>
-    function resizeCanvasProperly() {
+    function forceResizeCanvas() {
       const canvas = document.querySelector('canvas');
       if (!canvas) return;
-
-      // Set actual drawing resolution
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-
-      // Match display size
       canvas.style.width = window.innerWidth + 'px';
       canvas.style.height = window.innerHeight + 'px';
     }
 
-    // Resize when game loads or window changes
-    window.addEventListener('load', () => {
-      resizeCanvasProperly();
-      setTimeout(resizeCanvasProperly, 500); // Ensure canvas loaded
-    });
+    function waitAndResize() {
+      const maxAttempts = 20;
+      let attempts = 0;
 
-    window.addEventListener('resize', resizeCanvasProperly);
+      const interval = setInterval(() => {
+        const canvas = document.querySelector('canvas');
+        if (canvas) {
+          forceResizeCanvas();
+          attempts++;
+
+          const cw = parseInt(canvas.getAttribute('width'), 10);
+          const ch = parseInt(canvas.getAttribute('height'), 10);
+
+          if ((cw === window.innerWidth && ch === window.innerHeight) || attempts >= maxAttempts) {
+            clearInterval(interval);
+          }
+        }
+      }, 300);
+    }
+
+    window.addEventListener('load', waitAndResize);
+    window.addEventListener('resize', forceResizeCanvas);
   </script>
 </body>
 </html>
