@@ -1,141 +1,75 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Angry Birds Fullscreen</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    html, body {
-      margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: black;
-    }
-    canvas {
-      position: absolute;
-      top: 0; left: 0;
-      image-rendering: pixelated; /* sharp scaling */
-      /* size and transform set by JS */
-    }
-    /* Hide UI buttons */
-    .buttons, #rovionews, #videochapter, #ingameframecontainer, #cornerframecontainer1 {
-      display: none !important;
-    }
-  </style>
-</head>
-<body>
-  <div id="content">
-    <div id="gameDiv">
-      <div id="playn-root">
-        <div id="loading">
-          <img src="images/loading_image_bird.png" alt="Loading..." />
-        </div>
-      </div>
-      <div id="rovionews"></div>
-      <div id="videochapter"></div>
-      <div id="ingameframecontainer"></div>
-      <div id="cornerframecontainer1"></div>
-    </div>
-  </div>
+function scaleAndCenterCanvas() {
+  const canvas = document.querySelector('canvas');
+  if (!canvas) return;
 
-  <script src="fowl/fowl.nocache.js"></script>
-  <script>
-    function scaleCanvas() {
-      const canvas = document.querySelector('canvas');
-      if (!canvas) return;
+  const nativeWidth = canvas.width;
+  const nativeHeight = canvas.height;
 
-      const nativeWidth = canvas.width;
-      const nativeHeight = canvas.height;
+  if (nativeWidth === 0 || nativeHeight === 0) {
+    return false;
+  }
 
-      if (nativeWidth === 0 || nativeHeight === 0) {
-        // Canvas not ready yet
-        return false;
-      }
+  const scaleX = window.innerWidth / nativeWidth;
+  const scaleY = window.innerHeight / nativeHeight;
+  const scale = Math.min(scaleX, scaleY);
 
-      const scaleX = window.innerWidth / nativeWidth;
-      const scaleY = window.innerHeight / nativeHeight;
-      const scale = Math.min(scaleX, scaleY);
+  canvas.style.width = nativeWidth + 'px';
+  canvas.style.height = nativeHeight + 'px';
+  canvas.style.position = 'absolute';
+  canvas.style.transformOrigin = 'left top';
+  canvas.style.transform = `scale(${scale})`;
 
-      // Set native size
-      canvas.style.width = nativeWidth + 'px';
-      canvas.style.height = nativeHeight + 'px';
+  // CENTER the canvas both horizontally and vertically
+  const offsetX = (window.innerWidth - nativeWidth * scale) / 2;
+  const offsetY = (window.innerHeight - nativeHeight * scale) / 2;
+  canvas.style.left = offsetX + 'px';
+  canvas.style.top = offsetY + 'px';
 
-      // Apply scale
-      canvas.style.transformOrigin = 'top left';
-      canvas.style.transform = `scale(${scale})`;
+  return { scale, offsetX, offsetY };
+}
 
-      // Center canvas in viewport
-      const offsetX = (window.innerWidth - nativeWidth * scale) / 2;
-      const offsetY = (window.innerHeight - nativeHeight * scale) / 2;
-      canvas.style.left = offsetX + 'px';
-      canvas.style.top = offsetY + 'px';
+function fixMouseCoords(e, scale, offsetX, offsetY) {
+  const x = (e.clientX - offsetX) / scale;
+  const y = (e.clientY - offsetY) / scale;
+  return { x, y };
+}
 
-      return { scale, offsetX, offsetY };
-    }
+function setupInputFix() {
+  const canvas = document.querySelector('canvas');
+  if (!canvas) return;
 
-    function fixMouseCoordinates(event, scale, offsetX, offsetY) {
-      // Convert page coords to canvas coords
-      const x = (event.clientX - offsetX) / scale;
-      const y = (event.clientY - offsetY) / scale;
-      return { x, y };
-    }
+  let last = { scale: 1, offsetX: 0, offsetY: 0 };
 
-    function setupInputFix() {
-      const canvas = document.querySelector('canvas');
-      if (!canvas) return;
+  function update() {
+    const res = scaleAndCenterCanvas();
+    if (res) last = res;
+  }
 
-      let lastScale = 1;
-      let lastOffsetX = 0;
-      let lastOffsetY = 0;
+  update();
+  window.addEventListener('resize', update);
 
-      function updateScaleAndOffsets() {
-        const res = scaleCanvas();
-        if (res) {
-          lastScale = res.scale;
-          lastOffsetX = res.offsetX;
-          lastOffsetY = res.offsetY;
-        }
-      }
+  ['mousemove', 'mousedown', 'mouseup', 'click'].forEach(eventName => {
+    canvas.addEventListener(eventName, e => {
+      const fixed = fixMouseCoords(e, last.scale, last.offsetX, last.offsetY);
 
-      updateScaleAndOffsets();
+      // If you have access to the game's input system, send fixed.x and fixed.y here
+      // Otherwise, this only logs corrected coords for debugging:
+      console.log(`Corrected ${eventName}: x=${fixed.x.toFixed(2)}, y=${fixed.y.toFixed(2)}`);
 
-      window.addEventListener('resize', updateScaleAndOffsets);
+      // Optionally stop propagation to prevent wrong coordinates reaching game:
+      // e.stopPropagation();
+      // e.preventDefault();
+    }, { passive: false });
+  });
+}
 
-      // Intercept mouse events on the canvas and adjust coordinates
-      // You may need to add other event types (mousedown, mouseup, touchstart...) similarly
-
-      ['mousemove', 'mousedown', 'mouseup', 'click'].forEach(evtName => {
-        canvas.addEventListener(evtName, e => {
-          const fixedCoords = fixMouseCoordinates(e, lastScale, lastOffsetX, lastOffsetY);
-
-          // Create a new event with adjusted coordinates and dispatch it
-          // This depends on your game input handling, here is a generic example:
-
-          // Prevent the original event's propagation if needed
-          // e.preventDefault();
-          // e.stopPropagation();
-
-          // You may want to call your game input handler here with fixedCoords.x, fixedCoords.y
-          // For example:
-          // game.handleMouseEvent(evtName, fixedCoords.x, fixedCoords.y);
-
-          // Or just log coords for debugging:
-          // console.log(`Adjusted ${evtName}:`, fixedCoords.x, fixedCoords.y);
-
-          // If you cannot hook the game input handler, this won't fully fix hover clicks.
-        }, { passive: false });
-      });
-    }
-
-    function waitForCanvas() {
-      const canvas = document.querySelector('canvas');
-      if (!canvas) {
-        setTimeout(waitForCanvas, 100);
-        return;
-      }
+window.addEventListener('load', () => {
+  const trySetup = () => {
+    if (document.querySelector('canvas')) {
       setupInputFix();
+    } else {
+      setTimeout(trySetup, 100);
     }
-
-    window.addEventListener('load', () => {
-      waitForCanvas();
-    });
-  </script>
-</body>
-</html>
+  };
+  trySetup();
+});
