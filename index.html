@@ -13,6 +13,7 @@
       top: 0;
       left: 0;
       image-rendering: pixelated;
+      /* no width/height set here, JS sets it */
     }
     /* Hide UI buttons */
     .buttons, #rovionews, #videochapter, #ingameframecontainer, #cornerframecontainer1 {
@@ -38,17 +39,14 @@
   <script src="fowl/fowl.nocache.js"></script>
 
   <script>
-    // Scale and center canvas while preserving aspect ratio
+    // Scale and center the canvas
     function scaleAndCenterCanvas() {
       const canvas = document.querySelector('canvas');
       if (!canvas) return;
 
       const nativeWidth = canvas.width;
       const nativeHeight = canvas.height;
-
-      if (nativeWidth === 0 || nativeHeight === 0) {
-        return false;
-      }
+      if (nativeWidth === 0 || nativeHeight === 0) return false;
 
       const scaleX = window.innerWidth / nativeWidth;
       const scaleY = window.innerHeight / nativeHeight;
@@ -60,7 +58,6 @@
       canvas.style.transformOrigin = 'left top';
       canvas.style.transform = `scale(${scale})`;
 
-      // Center horizontally and vertically
       const offsetX = (window.innerWidth - nativeWidth * scale) / 2;
       const offsetY = (window.innerHeight - nativeHeight * scale) / 2;
       canvas.style.left = offsetX + 'px';
@@ -69,15 +66,38 @@
       return { scale, offsetX, offsetY };
     }
 
-    // Adjust mouse coordinates to match scaled canvas
+    // Convert viewport mouse coords to canvas coords
     function fixMouseCoords(e, scale, offsetX, offsetY) {
-      const x = (e.clientX - offsetX) / scale;
-      const y = (e.clientY - offsetY) / scale;
-      return { x, y };
+      return {
+        x: (e.clientX - offsetX) / scale,
+        y: (e.clientY - offsetY) / scale,
+      };
     }
 
-    // Setup mouse event listeners with coordinate fix
-    function setupInputFix() {
+    // Dispatch a new mouse event with corrected coords
+    function dispatchCorrectedEvent(originalEvent, canvas, fixedX, fixedY) {
+      const evt = new MouseEvent(originalEvent.type, {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        detail: originalEvent.detail,
+        screenX: originalEvent.screenX,
+        screenY: originalEvent.screenY,
+        clientX: fixedX,
+        clientY: fixedY,
+        ctrlKey: originalEvent.ctrlKey,
+        altKey: originalEvent.altKey,
+        shiftKey: originalEvent.shiftKey,
+        metaKey: originalEvent.metaKey,
+        button: originalEvent.button,
+        buttons: originalEvent.buttons,
+        relatedTarget: originalEvent.relatedTarget
+      });
+      canvas.dispatchEvent(evt);
+    }
+
+    // Setup scaling + fix input events by rewriting mouse events with adjusted coordinates
+    function setupCanvasScalingAndInputFix() {
       const canvas = document.querySelector('canvas');
       if (!canvas) return;
 
@@ -87,24 +107,38 @@
         const res = scaleAndCenterCanvas();
         if (res) last = res;
       }
-
       update();
       window.addEventListener('resize', update);
 
+      // Listen to mouse events on window to intercept BEFORE canvas gets them
       ['mousemove', 'mousedown', 'mouseup', 'click'].forEach(eventName => {
-        canvas.addEventListener(eventName, e => {
-          const fixed = fixMouseCoords(e, last.scale, last.offsetX, last.offsetY);
-          // Log adjusted coords for debugging - replace with your input handler if possible
-          console.log(`Corrected ${eventName}: x=${fixed.x.toFixed(2)}, y=${fixed.y.toFixed(2)}`);
-        }, { passive: false });
+        window.addEventListener(eventName, function(e) {
+          if (!canvas) return;
+          const bounds = canvas.getBoundingClientRect();
+          // Check if mouse is inside canvas bounds (scaled + offset)
+          if (
+            e.clientX >= bounds.left && e.clientX <= bounds.right &&
+            e.clientY >= bounds.top && e.clientY <= bounds.bottom
+          ) {
+            // Calculate fixed coordinates relative to canvas native size
+            const fixedCoords = fixMouseCoords(e, last.scale, last.offsetX, last.offsetY);
+
+            // Stop original event so it does not go to canvas with wrong coords
+            e.stopImmediatePropagation();
+            e.preventDefault();
+
+            // Dispatch new event with corrected coordinates on canvas
+            dispatchCorrectedEvent(e, canvas, fixedCoords.x, fixedCoords.y);
+          }
+        }, true); // use capture to get event first
       });
     }
 
-    // Wait for canvas to appear then setup input fix
+    // Wait for canvas to appear then set everything up
     window.addEventListener('load', () => {
       const trySetup = () => {
         if (document.querySelector('canvas')) {
-          setupInputFix();
+          setupCanvasScalingAndInputFix();
         } else {
           setTimeout(trySetup, 100);
         }
