@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Angry Birds Fullscreen</title>
+  <title>Canvas Scaling and Input Fix</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body {
@@ -59,6 +59,7 @@
 
       canvas.style.width = nativeWidth + 'px';
       canvas.style.height = nativeHeight + 'px';
+      canvas.style.position = 'absolute';
       canvas.style.transformOrigin = 'left top';
       canvas.style.transform = `scale(${scale})`;
 
@@ -70,9 +71,15 @@
       return { scale, offsetX, offsetY };
     }
 
-    function getMousePos(canvas, evt, scale, offsetX, offsetY) {
-      const x = (evt.clientX - offsetX) / scale;
-      const y = (evt.clientY - offsetY) / scale;
+    function getMousePos(canvas, evt) {
+      const rect = canvas.getBoundingClientRect();
+      const scale = canvas.width / rect.width;
+      const offsetX = rect.left;
+      const offsetY = rect.top;
+
+      const x = (evt.clientX - offsetX) * scale;
+      const y = (evt.clientY - offsetY) * scale;
+
       return { x, y };
     }
 
@@ -107,19 +114,32 @@
       window.addEventListener('resize', update);
 
       ['mousemove', 'mousedown', 'mouseup', 'click'].forEach(eventName => {
-        window.addEventListener(eventName, function (e) {
+        window.addEventListener(eventName, function(e) {
+          if (!canvas) return;
+
           const bounds = canvas.getBoundingClientRect();
           if (
-            e.clientX >= bounds.left &&
-            e.clientX <= bounds.right &&
-            e.clientY >= bounds.top &&
-            e.clientY <= bounds.bottom
+            e.clientX >= bounds.left && e.clientX <= bounds.right &&
+            e.clientY >= bounds.top && e.clientY <= bounds.bottom
           ) {
+            const fixed = getMousePos(canvas, e);
             e.stopImmediatePropagation();
             e.preventDefault();
 
-            const fixed = getMousePos(canvas, e, last.scale, last.offsetX, last.offsetY);
-            dispatchCorrectedEvent(e, canvas, fixed.x, fixed.y);
+            const newEvent = new MouseEvent(e.type, {
+              bubbles: true,
+              cancelable: true,
+              clientX: fixed.x,
+              clientY: fixed.y,
+              button: e.button,
+              buttons: e.buttons,
+              ctrlKey: e.ctrlKey,
+              altKey: e.altKey,
+              shiftKey: e.shiftKey,
+              metaKey: e.metaKey,
+            });
+
+            canvas.dispatchEvent(newEvent);
           }
         }, true);
       });
