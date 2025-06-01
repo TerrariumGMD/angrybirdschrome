@@ -2,25 +2,35 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Canvas Scaling and Input Fix</title>
+  <title>Angry Birds Fullscreen</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      height: 100%;
       width: 100%;
-      overflow: hidden;
+      height: 100%;
       background: black;
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     canvas {
-      position: absolute;
-      image-rendering: pixelated;
       display: block;
+      /* Let JavaScript resize this based on aspect ratio */
     }
 
-    .buttons, #rovionews, #videochapter, #ingameframecontainer, #cornerframecontainer1 {
+    /* Hide unnecessary UI elements */
+    .buttons,
+    #rovionews,
+    #videochapter,
+    #ingameframecontainer,
+    #cornerframecontainer1 {
       display: none !important;
     }
   </style>
@@ -40,120 +50,44 @@
     </div>
   </div>
 
-  <!-- Your game script -->
+  <!-- Load your game -->
   <script src="fowl/fowl.nocache.js"></script>
 
-  <!-- Scaling + Input Correction Script -->
+  <!-- Resize canvas based on window while keeping aspect ratio -->
   <script>
-    function scaleAndCenterCanvas() {
+    function resizeCanvasToFit() {
       const canvas = document.querySelector('canvas');
       if (!canvas) return;
 
       const nativeWidth = canvas.width;
       const nativeHeight = canvas.height;
-      if (nativeWidth === 0 || nativeHeight === 0) return false;
+      if (!nativeWidth || !nativeHeight) return;
 
-      const scaleX = window.innerWidth / nativeWidth;
-      const scaleY = window.innerHeight / nativeHeight;
-      const scale = Math.min(scaleX, scaleY);
+      const aspectRatio = nativeWidth / nativeHeight;
+      let newWidth = window.innerWidth;
+      let newHeight = window.innerHeight;
 
-      canvas.style.width = nativeWidth + 'px';
-      canvas.style.height = nativeHeight + 'px';
-      canvas.style.position = 'absolute';
-      canvas.style.transformOrigin = 'left top';
-      canvas.style.transform = `scale(${scale})`;
-
-      const offsetX = (window.innerWidth - nativeWidth * scale) / 2;
-      const offsetY = (window.innerHeight - nativeHeight * scale) / 2;
-      canvas.style.left = offsetX + 'px';
-      canvas.style.top = offsetY + 'px';
-
-      return { scale, offsetX, offsetY };
-    }
-
-    function getMousePos(canvas, evt) {
-      const rect = canvas.getBoundingClientRect();
-      const scale = canvas.width / rect.width;
-      const offsetX = rect.left;
-      const offsetY = rect.top;
-
-      const x = (evt.clientX - offsetX) * scale;
-      const y = (evt.clientY - offsetY) * scale;
-
-      return { x, y };
-    }
-
-    function dispatchCorrectedEvent(originalEvent, canvas, x, y) {
-      const fixedEvent = new MouseEvent(originalEvent.type, {
-        bubbles: true,
-        cancelable: true,
-        clientX: x,
-        clientY: y,
-        button: originalEvent.button,
-        buttons: originalEvent.buttons,
-        ctrlKey: originalEvent.ctrlKey,
-        shiftKey: originalEvent.shiftKey,
-        altKey: originalEvent.altKey,
-        metaKey: originalEvent.metaKey
-      });
-      canvas.dispatchEvent(fixedEvent);
-    }
-
-    function setupInputFix() {
-      const canvas = document.querySelector('canvas');
-      if (!canvas) return;
-
-      let last = { scale: 1, offsetX: 0, offsetY: 0 };
-
-      function update() {
-        const res = scaleAndCenterCanvas();
-        if (res) last = res;
+      if (newWidth / newHeight > aspectRatio) {
+        newWidth = newHeight * aspectRatio;
+      } else {
+        newHeight = newWidth / aspectRatio;
       }
 
-      update();
-      window.addEventListener('resize', update);
-
-      ['mousemove', 'mousedown', 'mouseup', 'click'].forEach(eventName => {
-        window.addEventListener(eventName, function(e) {
-          if (!canvas) return;
-
-          const bounds = canvas.getBoundingClientRect();
-          if (
-            e.clientX >= bounds.left && e.clientX <= bounds.right &&
-            e.clientY >= bounds.top && e.clientY <= bounds.bottom
-          ) {
-            const fixed = getMousePos(canvas, e);
-            e.stopImmediatePropagation();
-            e.preventDefault();
-
-            const newEvent = new MouseEvent(e.type, {
-              bubbles: true,
-              cancelable: true,
-              clientX: fixed.x,
-              clientY: fixed.y,
-              button: e.button,
-              buttons: e.buttons,
-              ctrlKey: e.ctrlKey,
-              altKey: e.altKey,
-              shiftKey: e.shiftKey,
-              metaKey: e.metaKey,
-            });
-
-            canvas.dispatchEvent(newEvent);
-          }
-        }, true);
-      });
+      canvas.style.width = newWidth + 'px';
+      canvas.style.height = newHeight + 'px';
     }
 
+    window.addEventListener('resize', resizeCanvasToFit);
     window.addEventListener('load', () => {
-      const trySetup = () => {
-        if (document.querySelector('canvas')) {
-          setupInputFix();
+      const tryResize = () => {
+        const canvas = document.querySelector('canvas');
+        if (canvas && canvas.width && canvas.height) {
+          resizeCanvasToFit();
         } else {
-          setTimeout(trySetup, 100);
+          setTimeout(tryResize, 100);
         }
       };
-      trySetup();
+      tryResize();
     });
   </script>
 </body>
