@@ -19,6 +19,7 @@
     }
 
     #content, #gameDiv, #playn-root {
+      position: relative;
       height: 100vh;
       width: 100vw;
       margin: 0;
@@ -26,15 +27,17 @@
       display: block;
     }
 
-    canvas, iframe, object {
+    canvas {
       display: block;
-      width: 100% !important;
-      height: 100% !important;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw !important;
+      height: 100vh !important;
       margin: 0;
       padding: 0;
     }
 
-    /* Hide UI buttons and extra containers */
     .buttons,
     #rovionews,
     #videochapter,
@@ -53,7 +56,6 @@
         </div>
       </div>
 
-      <!-- Hidden containers -->
       <div id="rovionews"></div>
       <div id="videochapter"></div>
       <div id="ingameframecontainer"></div>
@@ -61,29 +63,28 @@
     </div>
   </div>
 
-  <!-- Main game script -->
+  <!-- Load game engine -->
   <script src="fowl/fowl.nocache.js"></script>
 
-  <!-- Resize logic for game container and canvas -->
+  <!-- Force resize canvas after game loads -->
   <script>
-    function resizeGame() {
-      const root = document.getElementById('playn-root');
-      if (root) {
-        root.style.width = window.innerWidth + 'px';
-        root.style.height = window.innerHeight + 'px';
-      }
-
+    function resizeCanvas() {
       const canvas = document.querySelector('canvas');
       if (canvas) {
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
       }
     }
 
-    window.addEventListener('resize', resizeGame);
-    window.addEventListener('load', resizeGame);
+    // Run after game has initialized
+    window.addEventListener('load', () => {
+      resizeCanvas();
+      setTimeout(resizeCanvas, 1000); // Try again if canvas loads a bit late
+    });
+
+    window.addEventListener('resize', resizeCanvas);
   </script>
 </body>
 </html>
