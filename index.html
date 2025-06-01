@@ -11,8 +11,12 @@
     canvas {
       position: absolute;
       top: 0; left: 0;
-      image-rendering: pixelated; /* optional */
-      /* We'll set width/height and transform via JS */
+      image-rendering: pixelated; /* sharp scaling */
+      /* size and transform set by JS */
+    }
+    /* Hide UI buttons */
+    .buttons, #rovionews, #videochapter, #ingameframecontainer, #cornerframecontainer1 {
+      display: none !important;
     }
   </style>
 </head>
@@ -33,66 +37,105 @@
 
   <script src="fowl/fowl.nocache.js"></script>
   <script>
-    function scaleCanvasToFullscreen() {
+    function scaleCanvas() {
       const canvas = document.querySelector('canvas');
       if (!canvas) return;
 
-      // Get the internal canvas size (attributes)
       const nativeWidth = canvas.width;
       const nativeHeight = canvas.height;
 
       if (nativeWidth === 0 || nativeHeight === 0) {
-        // Canvas not ready yet, try again later
+        // Canvas not ready yet
         return false;
       }
 
-      // Calculate scale factors to fill the viewport while preserving aspect ratio
       const scaleX = window.innerWidth / nativeWidth;
       const scaleY = window.innerHeight / nativeHeight;
-      const scale = Math.min(scaleX, scaleY); // choose smaller to avoid cropping
+      const scale = Math.min(scaleX, scaleY);
 
-      // Apply CSS width/height equal to native size, then scale up with transform
+      // Set native size
       canvas.style.width = nativeWidth + 'px';
       canvas.style.height = nativeHeight + 'px';
+
+      // Apply scale
       canvas.style.transformOrigin = 'top left';
       canvas.style.transform = `scale(${scale})`;
 
-      // Optional: center the canvas if letterboxed
+      // Center canvas in viewport
       const offsetX = (window.innerWidth - nativeWidth * scale) / 2;
       const offsetY = (window.innerHeight - nativeHeight * scale) / 2;
       canvas.style.left = offsetX + 'px';
       canvas.style.top = offsetY + 'px';
 
-      return true;
+      return { scale, offsetX, offsetY };
     }
 
-    function waitForCanvasAndScale() {
+    function fixMouseCoordinates(event, scale, offsetX, offsetY) {
+      // Convert page coords to canvas coords
+      const x = (event.clientX - offsetX) / scale;
+      const y = (event.clientY - offsetY) / scale;
+      return { x, y };
+    }
+
+    function setupInputFix() {
+      const canvas = document.querySelector('canvas');
+      if (!canvas) return;
+
+      let lastScale = 1;
+      let lastOffsetX = 0;
+      let lastOffsetY = 0;
+
+      function updateScaleAndOffsets() {
+        const res = scaleCanvas();
+        if (res) {
+          lastScale = res.scale;
+          lastOffsetX = res.offsetX;
+          lastOffsetY = res.offsetY;
+        }
+      }
+
+      updateScaleAndOffsets();
+
+      window.addEventListener('resize', updateScaleAndOffsets);
+
+      // Intercept mouse events on the canvas and adjust coordinates
+      // You may need to add other event types (mousedown, mouseup, touchstart...) similarly
+
+      ['mousemove', 'mousedown', 'mouseup', 'click'].forEach(evtName => {
+        canvas.addEventListener(evtName, e => {
+          const fixedCoords = fixMouseCoordinates(e, lastScale, lastOffsetX, lastOffsetY);
+
+          // Create a new event with adjusted coordinates and dispatch it
+          // This depends on your game input handling, here is a generic example:
+
+          // Prevent the original event's propagation if needed
+          // e.preventDefault();
+          // e.stopPropagation();
+
+          // You may want to call your game input handler here with fixedCoords.x, fixedCoords.y
+          // For example:
+          // game.handleMouseEvent(evtName, fixedCoords.x, fixedCoords.y);
+
+          // Or just log coords for debugging:
+          // console.log(`Adjusted ${evtName}:`, fixedCoords.x, fixedCoords.y);
+
+          // If you cannot hook the game input handler, this won't fully fix hover clicks.
+        }, { passive: false });
+      });
+    }
+
+    function waitForCanvas() {
       const canvas = document.querySelector('canvas');
       if (!canvas) {
-        // Try again soon
-        setTimeout(waitForCanvasAndScale, 100);
+        setTimeout(waitForCanvas, 100);
         return;
       }
-
-      // Initially scale
-      if (!scaleCanvasToFullscreen()) {
-        // Canvas might not be ready, try again shortly
-        setTimeout(waitForCanvasAndScale, 100);
-        return;
-      }
-
-      // Watch for canvas size changes with MutationObserver
-      const observer = new MutationObserver(() => {
-        scaleCanvasToFullscreen();
-      });
-
-      observer.observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
-
-      // Also scale on window resize
-      window.addEventListener('resize', scaleCanvasToFullscreen);
+      setupInputFix();
     }
 
-    window.addEventListener('load', waitForCanvasAndScale);
+    window.addEventListener('load', () => {
+      waitForCanvas();
+    });
   </script>
 </body>
 </html>
