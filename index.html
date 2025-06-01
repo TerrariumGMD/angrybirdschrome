@@ -1,10 +1,140 @@
-window.addEventListener('load', () => {
-  const trySetup = () => {
-    if (document.querySelector('canvas')) {
-      setupInputFix();
-    } else {
-      setTimeout(trySetup, 100);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Angry Birds Fullscreen</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background: black;
     }
-  };
-  trySetup();
-});
+
+    canvas {
+      position: absolute;
+      image-rendering: pixelated;
+      display: block;
+    }
+
+    .buttons, #rovionews, #videochapter, #ingameframecontainer, #cornerframecontainer1 {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="content">
+    <div id="gameDiv">
+      <div id="playn-root">
+        <div id="loading">
+          <img src="images/loading_image_bird.png" alt="Loading..." />
+        </div>
+      </div>
+      <div id="rovionews"></div>
+      <div id="videochapter"></div>
+      <div id="ingameframecontainer"></div>
+      <div id="cornerframecontainer1"></div>
+    </div>
+  </div>
+
+  <!-- Your game script -->
+  <script src="fowl/fowl.nocache.js"></script>
+
+  <!-- Scaling + Input Correction Script -->
+  <script>
+    function scaleAndCenterCanvas() {
+      const canvas = document.querySelector('canvas');
+      if (!canvas) return;
+
+      const nativeWidth = canvas.width;
+      const nativeHeight = canvas.height;
+      if (nativeWidth === 0 || nativeHeight === 0) return false;
+
+      const scaleX = window.innerWidth / nativeWidth;
+      const scaleY = window.innerHeight / nativeHeight;
+      const scale = Math.min(scaleX, scaleY);
+
+      canvas.style.width = nativeWidth + 'px';
+      canvas.style.height = nativeHeight + 'px';
+      canvas.style.transformOrigin = 'left top';
+      canvas.style.transform = `scale(${scale})`;
+
+      const offsetX = (window.innerWidth - nativeWidth * scale) / 2;
+      const offsetY = (window.innerHeight - nativeHeight * scale) / 2;
+      canvas.style.left = offsetX + 'px';
+      canvas.style.top = offsetY + 'px';
+
+      return { scale, offsetX, offsetY };
+    }
+
+    function getMousePos(canvas, evt, scale, offsetX, offsetY) {
+      const x = (evt.clientX - offsetX) / scale;
+      const y = (evt.clientY - offsetY) / scale;
+      return { x, y };
+    }
+
+    function dispatchCorrectedEvent(originalEvent, canvas, x, y) {
+      const fixedEvent = new MouseEvent(originalEvent.type, {
+        bubbles: true,
+        cancelable: true,
+        clientX: x,
+        clientY: y,
+        button: originalEvent.button,
+        buttons: originalEvent.buttons,
+        ctrlKey: originalEvent.ctrlKey,
+        shiftKey: originalEvent.shiftKey,
+        altKey: originalEvent.altKey,
+        metaKey: originalEvent.metaKey
+      });
+      canvas.dispatchEvent(fixedEvent);
+    }
+
+    function setupInputFix() {
+      const canvas = document.querySelector('canvas');
+      if (!canvas) return;
+
+      let last = { scale: 1, offsetX: 0, offsetY: 0 };
+
+      function update() {
+        const res = scaleAndCenterCanvas();
+        if (res) last = res;
+      }
+
+      update();
+      window.addEventListener('resize', update);
+
+      ['mousemove', 'mousedown', 'mouseup', 'click'].forEach(eventName => {
+        window.addEventListener(eventName, function (e) {
+          const bounds = canvas.getBoundingClientRect();
+          if (
+            e.clientX >= bounds.left &&
+            e.clientX <= bounds.right &&
+            e.clientY >= bounds.top &&
+            e.clientY <= bounds.bottom
+          ) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+
+            const fixed = getMousePos(canvas, e, last.scale, last.offsetX, last.offsetY);
+            dispatchCorrectedEvent(e, canvas, fixed.x, fixed.y);
+          }
+        }, true);
+      });
+    }
+
+    window.addEventListener('load', () => {
+      const trySetup = () => {
+        if (document.querySelector('canvas')) {
+          setupInputFix();
+        } else {
+          setTimeout(trySetup, 100);
+        }
+      };
+      trySetup();
+    });
+  </script>
+</body>
+</html>
