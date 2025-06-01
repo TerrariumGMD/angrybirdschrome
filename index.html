@@ -32,12 +32,12 @@
       position: absolute;
       top: 0;
       left: 0;
-      width: 100vw !important;
-      height: 100vh !important;
       margin: 0;
       padding: 0;
+      /* Don't stretch canvas with CSS */
     }
 
+    /* Hide extra UI containers */
     .buttons,
     #rovionews,
     #videochapter,
@@ -56,6 +56,7 @@
         </div>
       </div>
 
+      <!-- Hidden containers -->
       <div id="rovionews"></div>
       <div id="videochapter"></div>
       <div id="ingameframecontainer"></div>
@@ -63,28 +64,31 @@
     </div>
   </div>
 
-  <!-- Load game engine -->
+  <!-- Main game engine -->
   <script src="fowl/fowl.nocache.js"></script>
 
-  <!-- Force resize canvas after game loads -->
+  <!-- Proper canvas resizing -->
   <script>
-    function resizeCanvas() {
+    function resizeCanvasProperly() {
       const canvas = document.querySelector('canvas');
-      if (canvas) {
-        canvas.style.width = window.innerWidth + 'px';
-        canvas.style.height = window.innerHeight + 'px';
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-      }
+      if (!canvas) return;
+
+      // Set actual drawing resolution
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      // Match display size
+      canvas.style.width = window.innerWidth + 'px';
+      canvas.style.height = window.innerHeight + 'px';
     }
 
-    // Run after game has initialized
+    // Resize when game loads or window changes
     window.addEventListener('load', () => {
-      resizeCanvas();
-      setTimeout(resizeCanvas, 1000); // Try again if canvas loads a bit late
+      resizeCanvasProperly();
+      setTimeout(resizeCanvasProperly, 500); // Ensure canvas loaded
     });
 
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', resizeCanvasProperly);
   </script>
 </body>
 </html>
