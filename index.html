@@ -26,7 +26,15 @@
       display: block;
     }
 
-    /* Hide UI elements */
+    canvas, iframe, object {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Hide UI buttons and extra containers */
     .buttons,
     #rovionews,
     #videochapter,
@@ -44,6 +52,7 @@
           <img src="images/loading_image_bird.png" alt="Loading..." />
         </div>
       </div>
+
       <!-- Hidden containers -->
       <div id="rovionews"></div>
       <div id="videochapter"></div>
@@ -54,5 +63,27 @@
 
   <!-- Main game script -->
   <script src="fowl/fowl.nocache.js"></script>
+
+  <!-- Resize logic for game container and canvas -->
+  <script>
+    function resizeGame() {
+      const root = document.getElementById('playn-root');
+      if (root) {
+        root.style.width = window.innerWidth + 'px';
+        root.style.height = window.innerHeight + 'px';
+      }
+
+      const canvas = document.querySelector('canvas');
+      if (canvas) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+      }
+    }
+
+    window.addEventListener('resize', resizeGame);
+    window.addEventListener('load', resizeGame);
+  </script>
 </body>
 </html>
